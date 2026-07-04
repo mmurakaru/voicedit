@@ -5,6 +5,15 @@ func writeStderr(_ message: String) {
     FileHandle.standardError.write(Data((message + "\n").utf8))
 }
 
+let arguments: Arguments
+switch ArgumentParser.parse(Array(CommandLine.arguments.dropFirst())) {
+case .success(let parsed):
+    arguments = parsed
+case .failure(let error):
+    writeStderr("read: \(error)")
+    exit(1)
+}
+
 guard PermissionCheck.isTrusted(promptIfNeeded: false) else {
     writeStderr("""
     read requires Accessibility permission.
@@ -15,16 +24,22 @@ guard PermissionCheck.isTrusted(promptIfNeeded: false) else {
     exit(1)
 }
 
-guard let root = FrontmostApplication.axElement() else {
-    writeStderr("read: no frontmost application found")
-    exit(1)
+let root: AccessibilityElement
+if let pid = arguments.pid {
+    root = SystemAccessibilityElement.application(pid: pid)
+} else {
+    guard let frontmost = FrontmostApplication.axElement() else {
+        writeStderr("read: no frontmost application found")
+        exit(1)
+    }
+    root = frontmost
 }
 
 // role is always non-empty for an app read succeeds on; empty means every AX call on
-// this app is failing outright (not AX-enabled, or it quit mid-read), not that its
-// on-screen text is genuinely absent.
+// this app is failing outright (not AX-enabled, invalid pid, or it quit mid-read), not
+// that its on-screen text is genuinely absent.
 guard !root.role.isEmpty else {
-    writeStderr("read: could not read the frontmost application's accessibility tree")
+    writeStderr("read: could not read the target application's accessibility tree")
     exit(1)
 }
 

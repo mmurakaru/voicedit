@@ -2,10 +2,20 @@ import ApplicationServices
 import CoreGraphics
 
 public final class SystemAccessibilityElement: AccessibilityElement {
+    /// Fail fast against an unresponsive app rather than blocking on the OS default
+    /// (commonly several seconds) for every one of the many AX calls a full tree walk makes.
+    private static let messagingTimeoutSeconds: Float = 1.0
+
     private let element: AXUIElement
 
     public init(element: AXUIElement) {
         self.element = element
+    }
+
+    public static func application(pid: pid_t) -> AccessibilityElement {
+        let axApp = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(axApp, messagingTimeoutSeconds)
+        return SystemAccessibilityElement(element: axApp)
     }
 
     public var role: String {

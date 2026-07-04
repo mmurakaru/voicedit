@@ -1,9 +1,14 @@
 # voicedit
 
-`ve` is a macOS CLI that dumps the frontmost application's accessibility
-tree as JSON - the primitive, not a product. See
+Acting on what's in front of you - "summarize this thread", "draft a reply",
+"what was decided?" - needs one thing before voice or an LLM can help: the
+context of what's on your screen. `ve` is that primitive. It dumps the frontmost
+application's accessibility tree as JSON, so anything above it (an adapter, a
+summarizer, a voice assistant) can read the screen without knowing how.
+
+`ve` is the perception layer, built and shipped on its own. See
 [the primitive is the product](https://www.amplifypartners.com/blog-posts/the-primitive-is-the-product)
-for the philosophy behind the split, and [docs/adr](docs/adr) for the decisions.
+for the philosophy, and [docs/adr](docs/adr) for the decisions behind the split.
 
 ## Install
 

@@ -12,3 +12,4 @@ jobs:
       - uses: actions/checkout@v7
       - run: swift build
       - run: swift test
+      - run: python3 adapters/slack-adapter-test

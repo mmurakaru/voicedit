@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""Focused tests for slack-adapter's pure filtering/layout logic.
+
+Stdlib only, no test framework - the adapter is a disposable POC, but its
+denylist heuristic is the whole point, so it gets a smoke test to catch rot.
+Run: python3 adapters/slack-adapter-test
+"""
+
+import importlib.util
+import os
+from importlib.machinery import SourceFileLoader
+
+_path = os.path.join(os.path.dirname(__file__), "slack-adapter")
+_loader = SourceFileLoader("slack_adapter", _path)
+spec = importlib.util.spec_from_loader("slack_adapter", _loader)
+adapter = importlib.util.module_from_spec(spec)
+_loader.exec_module(adapter)
+
+
+def node(role, text, x, y, height=17):
+    return {"role": role, "text": text, "frame": {"x": x, "y": y, "width": 100, "height": height}}
+
+
+def test_keeps_main_pane_static_text():
+    assert adapter.looks_like_message_content(node("AXStaticText", "hi", x=600, y=100))
+
+
+def test_drops_sidebar_chrome_by_x():
+    assert not adapter.looks_like_message_content(node("AXStaticText", "ai-first", x=168, y=100))
+
+
+def test_drops_zero_height_layout_artifacts():
+    assert not adapter.looks_like_message_content(node("AXStaticText", "x", x=600, y=100, height=1))
+
+
+def test_drops_non_static_text_roles():
+    assert not adapter.looks_like_message_content(node("AXButton", "Send", x=600, y=100))
+
+
+def test_joins_fragments_sharing_a_row_in_x_order():
+    nodes = [
+        node("AXStaticText", "world", x=560, y=100),
+        node("AXStaticText", "hello ", x=500, y=102),
+    ]
+    assert adapter.render(adapter.group_into_lines(nodes)) == "hello world"
+
+
+def test_separate_rows_become_separate_lines():
+    nodes = [
+        node("AXStaticText", "first", x=500, y=100),
+        node("AXStaticText", "second", x=500, y=200),
+    ]
+    assert adapter.render(adapter.group_into_lines(nodes)) == "first\nsecond"
+
+
+def run():
+    tests = [value for name, value in sorted(globals().items()) if name.startswith("test_")]
+    for test in tests:
+        test()
+    print(f"ok - {len(tests)} tests passed")
+
+
+if __name__ == "__main__":
+    run()

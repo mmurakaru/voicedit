@@ -1,11 +1,17 @@
 # voicedit
 
-`read` is a macOS CLI that dumps the frontmost application's accessibility
+`ve` is a macOS CLI that dumps the frontmost application's accessibility
 tree as JSON - the primitive, not a product. See
-[the PRD](https://www.amplifypartners.com/blog-posts/the-primitive-is-the-product)
-for the philosophy behind the split.
+[the primitive is the product](https://www.amplifypartners.com/blog-posts/the-primitive-is-the-product)
+for the philosophy behind the split, and [docs/adr](docs/adr) for the decisions.
 
-## Build
+## Install
+
+```
+brew install mmurakaru/tap/ve
+```
+
+## Build from source
 
 ```
 swift build
@@ -14,19 +20,19 @@ swift build
 ## Run
 
 ```
-swift run read            # frontmost application
-swift run read --pid 1234 # a specific process
+swift run ve            # frontmost application
+swift run ve --pid 1234 # a specific process
 ```
 
 Requires Accessibility permission (System Settings > Privacy & Security >
-Accessibility). On first run without it, `read` prints setup instructions to
+Accessibility). On first run without it, `ve` prints setup instructions to
 stderr and exits non-zero.
 
 ## Adapters
 
-`read` has no app awareness. Interpreting its output for a specific app is the
+`ve` has no app awareness. Interpreting its output for a specific app is the
 job of a disposable adapter that consumes it. `adapters/slack-adapter` is an
-example: it shells out to `read` and filters the result down to Slack message
+example: it shells out to `ve` and filters the result down to Slack message
 text. Adapters are allowed to be sloppy and are not part of the primitive.
 
 ```

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""slack-adapter - a disposable proof-of-concept consumer of the `read` primitive.
+"""slack-adapter - a disposable proof-of-concept consumer of the `ve` primitive.
 
-Shells out to `read`, then filters its raw accessibility dump down to what looks
+Shells out to `ve`, then filters its raw accessibility dump down to what looks
 like Slack message content and prints it in reading order. This is Layer 1: it is
 allowed to be wrong, it encodes Slack-specific assumptions, and it can be rewritten
-or thrown away without touching `read`. It is NOT a maintained, shipped tool.
+or thrown away without touching `ve`. It is NOT a maintained, shipped tool.
 
-The heuristic is a denylist built by eyeballing real `read` output with Slack
+The heuristic is a denylist built by eyeballing real `ve` output with Slack
 frontmost: keep static-text nodes in the main message pane, drop the left-hand
 navigation/channel chrome and zero-height layout artifacts, then join fragments
 that share a row into one line.
@@ -30,21 +30,21 @@ MIN_TEXT_HEIGHT = 10
 ROW_TOLERANCE = 6
 
 
-def find_read():
-    """Locate the `read` binary: an installed one, then this repo's build, then swift run."""
-    on_path = shutil.which("read-ax")
+def find_ve():
+    """Locate the `ve` binary: an installed one, then this repo's build, then swift run."""
+    on_path = shutil.which("ve")
     if on_path:
         return [on_path]
     repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for configuration in ("release", "debug"):
-        built = os.path.join(repo, ".build", configuration, "read")
+        built = os.path.join(repo, ".build", configuration, "ve")
         if os.path.exists(built):
             return [built]
-    return ["swift", "run", "--package-path", repo, "read"]
+    return ["swift", "run", "--package-path", repo, "ve"]
 
 
 def load_nodes():
-    result = subprocess.run(find_read(), capture_output=True, text=True)
+    result = subprocess.run(find_ve(), capture_output=True, text=True)
     if result.returncode != 0:
         sys.stderr.write(result.stderr)
         sys.exit(result.returncode)

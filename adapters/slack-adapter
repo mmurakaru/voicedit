@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""slack-adapter - a disposable proof-of-concept consumer of the `read` primitive.
+
+Shells out to `read`, then filters its raw accessibility dump down to what looks
+like Slack message content and prints it in reading order. This is Layer 1: it is
+allowed to be wrong, it encodes Slack-specific assumptions, and it can be rewritten
+or thrown away without touching `read`. It is NOT a maintained, shipped tool.
+
+The heuristic is a denylist built by eyeballing real `read` output with Slack
+frontmost: keep static-text nodes in the main message pane, drop the left-hand
+navigation/channel chrome and zero-height layout artifacts, then join fragments
+that share a row into one line.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+# Left edge of Slack's message pane. Everything to the left (the workspace nav
+# rail and the channel sidebar) is chrome, not message content.
+MESSAGE_PANE_MIN_X = 480
+
+# Slack emits many zero/one-pixel-height static-text nodes as layout artifacts;
+# real message text is taller than this.
+MIN_TEXT_HEIGHT = 10
+
+# Fragments whose top edges fall within this many points are treated as one line.
+ROW_TOLERANCE = 6
+
+
+def find_read():
+    """Locate the `read` binary: an installed one, then this repo's build, then swift run."""
+    on_path = shutil.which("read-ax")
+    if on_path:
+        return [on_path]
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for configuration in ("release", "debug"):
+        built = os.path.join(repo, ".build", configuration, "read")
+        if os.path.exists(built):
+            return [built]
+    return ["swift", "run", "--package-path", repo, "read"]
+
+
+def load_nodes():
+    result = subprocess.run(find_read(), capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr)
+        sys.exit(result.returncode)
+    return json.loads(result.stdout)["nodes"]
+
+
+def looks_like_message_content(node):
+    if node["role"] != "AXStaticText":
+        return False
+    frame = node["frame"]
+    return frame["x"] >= MESSAGE_PANE_MIN_X and frame["height"] >= MIN_TEXT_HEIGHT
+
+
+def group_into_lines(nodes):
+    nodes.sort(key=lambda n: (n["frame"]["y"], n["frame"]["x"]))
+    lines = []
+    current = []
+    current_y = None
+    for node in nodes:
+        y = node["frame"]["y"]
+        if current_y is None or abs(y - current_y) <= ROW_TOLERANCE:
+            current.append(node)
+            current_y = current_y if current_y is not None else y
+        else:
+            lines.append(current)
+            current = [node]
+            current_y = y
+    if current:
+        lines.append(current)
+    return lines
+
+
+def render(lines):
+    out = []
+    for line in lines:
+        line.sort(key=lambda n: n["frame"]["x"])
+        text = "".join(n["text"] for n in line).strip()
+        if text:
+            out.append(text)
+    return "\n".join(out)
+
+
+def main():
+    nodes = [n for n in load_nodes() if looks_like_message_content(n)]
+    print(render(group_into_lines(nodes)))
+
+
+if __name__ == "__main__":
+    main()

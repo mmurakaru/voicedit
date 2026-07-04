@@ -10,16 +10,16 @@ switch ArgumentParser.parse(Array(CommandLine.arguments.dropFirst())) {
 case .success(let parsed):
     arguments = parsed
 case .failure(let error):
-    writeStderr("read: \(error)")
+    writeStderr("ve: \(error)")
     exit(1)
 }
 
 guard PermissionCheck.isTrusted(promptIfNeeded: false) else {
     writeStderr("""
-    read requires Accessibility permission.
+    ve requires Accessibility permission.
 
     Open System Settings > Privacy & Security > Accessibility, add this binary, \
-    and enable it. Re-run `read` once granted.
+    and enable it. Re-run `ve` once granted.
     """)
     exit(1)
 }
@@ -29,17 +29,17 @@ if let pid = arguments.pid {
     root = SystemAccessibilityElement.application(pid: pid)
 } else {
     guard let frontmost = FrontmostApplication.axElement() else {
-        writeStderr("read: no frontmost application found")
+        writeStderr("ve: no frontmost application found")
         exit(1)
     }
     root = frontmost
 }
 
-// role is always non-empty for an app read succeeds on; empty means every AX call on
+// role is always non-empty for an app ve succeeds on; empty means every AX call on
 // this app is failing outright (not AX-enabled, invalid pid, or it quit mid-read), not
 // that its on-screen text is genuinely absent.
 guard !root.role.isEmpty else {
-    writeStderr("read: could not read the target application's accessibility tree")
+    writeStderr("ve: could not read the target application's accessibility tree")
     exit(1)
 }
 
@@ -51,6 +51,6 @@ do {
     FileHandle.standardOutput.write(data)
     FileHandle.standardOutput.write(Data("\n".utf8))
 } catch {
-    writeStderr("read: failed to encode output: \(error)")
+    writeStderr("ve: failed to encode output: \(error)")
     exit(1)
 }

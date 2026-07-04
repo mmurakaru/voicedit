@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.macOS(.v13)],
     targets: [
         .target(name: "ReadCore"),
-        .executableTarget(name: "read", dependencies: ["ReadCore"]),
+        .executableTarget(name: "ve", dependencies: ["ReadCore"]),
         .testTarget(name: "ReadCoreTests", dependencies: ["ReadCore"]),
     ]
 )
